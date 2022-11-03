@@ -104,7 +104,7 @@ func (srv *Work) CrawlerImage(target string) ([]byte, error) {
 	return content, nil
 }
 
-func (srv *Work) CrawlerImagesAndPrintAll(target string) ([]string, error) {
+func (srv *Work) CrawlerImagesAndSave(target string) ([]string, error) {
 	targetUrl, err := url.Parse(target)
 	var result []string
 	if err != nil {
@@ -132,6 +132,38 @@ func (srv *Work) CrawlerImagesAndPrintAll(target string) ([]string, error) {
 			continue
 		}
 		result = append(result, fullName)
+	}
+	return result, nil
+}
+
+func (srv *Work) CrawlerImages(target string) ([][]byte, error) {
+	targetUrl, err := url.Parse(target)
+	var result [][]byte
+	if err != nil {
+		return nil, err
+	}
+
+	dictName := fmt.Sprintf("%s/%s", "imgs", targetUrl.Host)
+	err = os.MkdirAll(dictName, 0755)
+	if err != nil {
+		return nil, err
+	}
+	t := &Image.Robot{}
+	imgs, err := t.Crawler(target)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	for _, img := range imgs {
+		if strings.HasPrefix(img, "/") {
+			img = fmt.Sprintf("%s://%s/%s", targetUrl.Scheme, targetUrl.Host, img)
+		}
+		data, _, err := t.GetImage(img)
+		if err != nil {
+			fmt.Println(err.Error())
+			continue
+		}
+		result = append(result, data)
 	}
 	return result, nil
 }

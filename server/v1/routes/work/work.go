@@ -3,6 +3,7 @@ package work
 import (
 	"api_server/internal/infrastures/configuration"
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"net/http"
 
@@ -50,11 +51,16 @@ func (c *Work) Action(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, err.Error())
 		return
 	}
-	_, err = ctx.Writer.Write(data)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, err.Error())
-		return
-	}
+	//_, err = ctx.Writer.Write(data)
+	//if err != nil {
+	//	ctx.JSON(http.StatusInternalServerError, err.Error())
+	//	return
+	//}
+	base64Encoding := getDataImageBase64(data)
+
+	html := fmt.Sprintf("<img src=\"%s\" />", base64Encoding)
+
+	ctx.Data(http.StatusOK, "text/html; charset=utf-8", []byte(html))
 }
 
 func (c *Work) Print(ctx *gin.Context) {
@@ -63,17 +69,38 @@ func (c *Work) Print(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, "url cant be null or empty")
 		return
 	}
-	//url := "https://www.taiwan.net.tw/m1.aspx?sNo=0012076"
-	data, err := c.srv.CrawlerImagesAndPrintAll(url)
+	imgs, err := c.srv.CrawlerImages(url)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, err.Error())
+		return
 	}
 
 	var buffer bytes.Buffer
 
-	for _, img := range data {
-		buffer.WriteString(fmt.Sprintf("<img src=\"/%s\" />", img))
+	for _, img := range imgs {
+		if len(img) <= 0 {
+			continue
+		}
+		//if idx >= 5 {
+		//	break
+		//}
+		base64Encoding := getDataImageBase64(img)
+		buffer.WriteString(fmt.Sprintf("<img src=\"%s\" />", base64Encoding))
 	}
-	//
 	ctx.Data(http.StatusOK, "text/html; charset=utf-8", buffer.Bytes())
+}
+
+func getDataImageBase64(source []byte) string {
+	var base64Encoding string
+
+	mimeType := http.DetectContentType(source)
+
+	switch mimeType {
+	case "image/jpeg":
+		base64Encoding += "data:image/jpeg;base64,"
+	case "image/png":
+		base64Encoding += "data:image/png;base64,"
+	}
+	base64Encoding += base64.StdEncoding.EncodeToString(source)
+	return base64Encoding
 }

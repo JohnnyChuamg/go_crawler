@@ -84,7 +84,7 @@ func (*Robot) Crawler(target string) ([]string, error) {
 	return imgs, nil
 }
 
-func (s *Robot) SaveImage(fullName string, source string) error {
+func (s *Robot) GetImage(source string) ([]byte, string, error) {
 	var imageConverter IImgConverter
 
 	if strings.Contains(source, "http") {
@@ -94,23 +94,26 @@ func (s *Robot) SaveImage(fullName string, source string) error {
 		imageConverter = &DataUri{}
 
 	} else {
-		return errors.New(fmt.Sprintf("not support this source: %s", source))
+		return nil, "", errors.New(fmt.Sprintf("not support this source: %s", source))
 	}
 
-	//fileName, err := s.generateFileName(source)
-	//if err != nil {
-	//	return err
-	//}
+	return imageConverter.Convert(source)
+}
 
-	data, contentType, err := imageConverter.Convert(source)
+func (s *Robot) SaveImage(fullName string, source string) (string, error) {
+	data, contentType, err := s.GetImage(source)
 
 	ext, err := s.contentTypeConvert(contentType)
 
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	return os.WriteFile(fmt.Sprintf("%s.%s", fullName, ext), data, 0666)
+	fullName = fmt.Sprintf("%s.%s", fullName, ext)
+	if err := os.WriteFile(fullName, data, 0666); err != nil {
+		return "", nil
+	}
+	return fullName, nil
 }
 
 func (*Robot) contentTypeConvert(contentType string) (string, error) {

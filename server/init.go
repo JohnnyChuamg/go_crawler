@@ -72,5 +72,7 @@ func newGinEngine() *gin.Engine {
 		c.String(http.StatusNotFound, "StatusNotFound")
 	})
 
+	defaultRouter.StaticFS("/imgs", http.Dir("imgs"))
+
 	return defaultRouter
 }

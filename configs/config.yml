@@ -3,5 +3,6 @@ advertise_addr: "http://localhost:6007"
 grpc_bind: ":17486"
 http_bind: ":6008"
 auth:
+  enable: true
   key: "token"
   ttl: 300

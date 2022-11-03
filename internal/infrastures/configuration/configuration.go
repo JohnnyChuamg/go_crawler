@@ -15,8 +15,9 @@ type Configuration struct {
 	GRPCBind      string `yaml:"grpc_bind"`
 	HTTPBind      string `yaml:"http_bind"`
 	Auth          struct {
-		Key string `yaml:"key"`
-		TTL int    `yaml:"ttl"`
+		Enable bool   `yaml:"false"`
+		Key    string `yaml:"key"`
+		TTL    int    `yaml:"ttl"`
 	} `yaml:"auth"`
 }
 

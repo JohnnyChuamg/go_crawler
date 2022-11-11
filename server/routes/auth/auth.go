@@ -34,12 +34,15 @@ func (c *Auth) SignIn(ctx *gin.Context) {
 
 	if model.Username == "" || model.Password == "" {
 		ctx.JSON(http.StatusBadRequest, "username or password invalid")
+		return
 	}
 	token, err := c.srv.SignIn(model)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, "unknown error: "+err.Error())
+		return
 	} else if token == "" {
 		ctx.JSON(http.StatusBadRequest, "username or password invalid")
+		return
 	}
 	ctx.SetCookie(configuration.GlobalConfig.Auth.Key, token, configuration.GlobalConfig.Auth.TTL, "/", "localhost", false, true)
 	ctx.JSON(http.StatusNoContent, "")

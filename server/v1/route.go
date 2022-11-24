@@ -36,7 +36,7 @@ func InitRoutes(engine *gin.Engine) error {
 }
 
 func createRoutes() ([]IRoute, error) {
-	auth := authMiddleware.New()
+	auth := authMiddleware.NewAuth()
 	routes := []IRoute{
 		workHandler.New(workSrv.New(repositories.NewWork()), auth),
 	}

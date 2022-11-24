@@ -1,13 +1,15 @@
 package work
 
 import (
-	"api_server/internal/infrastures/Image"
+	"api_server/internal/infrastures/utils"
 	"api_server/internal/repositories"
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
 	"regexp"
 	"strings"
+	"sync"
 )
 
 type Work struct {
@@ -116,7 +118,7 @@ func (srv *Work) CrawlerImagesAndSave(target string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	t := &Image.Robot{}
+	t := &utils.Robot{}
 	imgs, err := t.Crawler(target)
 	if err != nil {
 		fmt.Println(err.Error())
@@ -148,10 +150,13 @@ func (srv *Work) CrawlerImages(target string) ([][]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	t := &Image.Robot{}
+	t := &utils.Robot{}
 	imgs, err := t.Crawler(target)
 	if err != nil {
 		fmt.Println(err.Error())
+		return nil, err
+	} else if len(imgs) <= 0 {
+		return nil, errors.New("no data can crawler")
 	}
 
 	for _, img := range imgs {
@@ -165,5 +170,55 @@ func (srv *Work) CrawlerImages(target string) ([][]byte, error) {
 		}
 		result = append(result, data)
 	}
+	return result, nil
+}
+
+func (srv *Work) CrawlerImagesAsync(target string) (result [][]byte, err error) {
+	wg := &sync.WaitGroup{}
+
+	targetUrl, err := url.Parse(target)
+	if err != nil {
+		return nil, err
+	}
+
+	dictName := fmt.Sprintf("%s/%s", "imgs", targetUrl.Host)
+	err = os.MkdirAll(dictName, 0755)
+	if err != nil {
+		return nil, err
+	}
+	t := &utils.Robot{}
+	imgs, err := t.Crawler(target)
+	if err != nil {
+		fmt.Println(err.Error())
+		return nil, err
+	} else if len(imgs) <= 0 {
+		return nil, errors.New("")
+	}
+	v := make(chan []byte, len(imgs))
+	wg.Add(len(imgs))
+	for _, img := range imgs {
+		if strings.HasPrefix(img, "/") {
+			img = fmt.Sprintf("%s://%s/%s", targetUrl.Scheme, targetUrl.Host, img)
+		}
+		//透過goroutine 加快下載img的過程
+		go func(source string, wgt *sync.WaitGroup) {
+			defer wgt.Done()
+			data, _, err := t.GetImage(source)
+			if err != nil {
+				fmt.Println(err.Error())
+				return
+			}
+			v <- data
+		}(img, wg)
+	}
+	wg.Wait()
+	close(v)
+	for c := range v {
+		if c == nil {
+			continue
+		}
+		result = append(result, c)
+	}
+
 	return result, nil
 }

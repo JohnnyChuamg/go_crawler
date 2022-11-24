@@ -10,7 +10,7 @@ import (
 type Auth struct {
 }
 
-func New() *Auth {
+func NewAuth() *Auth {
 	return &Auth{}
 }
 
@@ -25,6 +25,6 @@ func (m *Auth) Authentication(ctx *gin.Context) {
 }
 
 // Authorization Determines what users can and cannot access 確定用戶可以訪問和不能訪問的內容
-func (m *Auth) Authorization() {
-
+func (m *Auth) Authorization(ctx *gin.Context) {
+	ctx.Next()
 }

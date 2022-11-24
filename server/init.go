@@ -23,9 +23,9 @@ func NewServer() error {
 
 	if err := baseRoute.InitRoutes(ginEngine); err != nil {
 		return err
+	} else if err := v1.InitRoutes(ginEngine); err != nil {
+		return err
 	}
-
-	err := v1.InitRoutes(ginEngine)
 
 	// start http server
 	httpServer := &http.Server{
@@ -35,7 +35,7 @@ func NewServer() error {
 	go func() {
 		// service connection
 		log.Info().Msgf("main: Listening and serving HTTP on %s", httpServer.Addr)
-		err = httpServer.ListenAndServe()
+		err := httpServer.ListenAndServe()
 		if err != http.ErrServerClosed {
 			log.Panic().Msgf("main: http server listen failed: %v", err)
 		}
@@ -68,10 +68,12 @@ func newGinEngine() *gin.Engine {
 
 	defaultRouter.Use(cors.New(corsConfig))
 
+	//預設的not found route
 	defaultRouter.NoRoute(func(c *gin.Context) {
 		c.String(http.StatusNotFound, "StatusNotFound")
 	})
 
+	//靜態位置
 	defaultRouter.StaticFS("/imgs", http.Dir("imgs"))
 
 	return defaultRouter

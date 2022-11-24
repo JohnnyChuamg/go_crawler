@@ -5,9 +5,8 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
-	"net/http"
-
 	"github.com/gin-gonic/gin"
+	"net/http"
 
 	middlewares "api_server/internal/middlewares/auth"
 	srv "api_server/internal/services/work"
@@ -59,7 +58,6 @@ func (c *Work) Action(ctx *gin.Context) {
 	base64Encoding := getDataImageBase64(data)
 
 	html := fmt.Sprintf("<img src=\"%s\" />", base64Encoding)
-
 	ctx.Data(http.StatusOK, "text/html; charset=utf-8", []byte(html))
 }
 
@@ -69,14 +67,13 @@ func (c *Work) Print(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, "url cant be null or empty")
 		return
 	}
-	imgs, err := c.srv.CrawlerImages(url)
+	imgs, err := c.srv.CrawlerImagesAsync(url)
+	//imgs, err := c.srv.CrawlerImages(url)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, err.Error())
 		return
 	}
-
 	var buffer bytes.Buffer
-
 	for _, img := range imgs {
 		if len(img) <= 0 {
 			continue

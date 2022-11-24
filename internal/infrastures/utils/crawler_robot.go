@@ -1,7 +1,6 @@
-package Image
+package utils
 
 import (
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
@@ -10,48 +9,6 @@ import (
 	"regexp"
 	"strings"
 )
-
-type IImgConverter interface {
-	Convert(source string) ([]byte, string, error)
-}
-
-type DataUri struct {
-}
-
-func (*DataUri) Convert(source string) ([]byte, string, error) {
-	r, err := regexp.Compile("data:(image/.*);base64,(.*)")
-	if err != nil {
-		return nil, "", err
-	}
-	s := r.FindAllStringSubmatch(source, -1)
-	if len(s) <= 0 {
-		return nil, "", errors.New("source is not data uri format")
-	}
-	contentType := s[0][1]
-	data := s[0][2]
-	content, err := base64.StdEncoding.DecodeString(data)
-	if err != nil {
-		return nil, "", errors.New("base64 decode failed")
-	}
-	return content, contentType, nil
-}
-
-type HttpUrl struct {
-}
-
-func (*HttpUrl) Convert(source string) ([]byte, string, error) {
-	resp, err := http.Get(source)
-	if err != nil {
-		return nil, "", err
-	}
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, "", err
-	}
-	contentType := resp.Header["Content-Type"][0]
-	defer resp.Body.Close()
-	return data, contentType, nil
-}
 
 type Robot struct {
 }
@@ -88,10 +45,10 @@ func (s *Robot) GetImage(source string) ([]byte, string, error) {
 	var imageConverter IImgConverter
 
 	if strings.Contains(source, "http") {
-		imageConverter = &HttpUrl{}
+		imageConverter = &HttpUrlImgConverter{}
 
 	} else if strings.Contains(source, "data:image") {
-		imageConverter = &DataUri{}
+		imageConverter = &DataUriImgConverter{}
 
 	} else {
 		return nil, "", errors.New(fmt.Sprintf("not support this source: %s", source))

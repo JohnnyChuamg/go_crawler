@@ -175,18 +175,16 @@ func (srv *Work) CrawlerImages(target string) ([][]byte, error) {
 
 func (srv *Work) CrawlerImagesAsync(target string) (result [][]byte, err error) {
 	wg := &sync.WaitGroup{}
+	wg2 := &sync.WaitGroup{}
 
+	//檢查target是不是合法的url格式
 	targetUrl, err := url.Parse(target)
 	if err != nil {
 		return nil, err
 	}
 
-	dictName := fmt.Sprintf("%s/%s", "imgs", targetUrl.Host)
-	err = os.MkdirAll(dictName, 0755)
-	if err != nil {
-		return nil, err
-	}
 	t := &utils.Robot{}
+	//爬取target上所有img src的資訊連結下來
 	imgs, err := t.Crawler(target)
 	if err != nil {
 		fmt.Println(err.Error())
@@ -194,8 +192,11 @@ func (srv *Work) CrawlerImagesAsync(target string) (result [][]byte, err error) 
 	} else if len(imgs) <= 0 {
 		return nil, errors.New("")
 	}
+
+	//下載爬取到且可處理的所有img
 	v := make(chan []byte, len(imgs))
 	wg.Add(len(imgs))
+	wg2.Add(1)
 	for _, img := range imgs {
 		if strings.HasPrefix(img, "/") {
 			img = fmt.Sprintf("%s://%s/%s", targetUrl.Scheme, targetUrl.Host, img)
@@ -211,14 +212,17 @@ func (srv *Work) CrawlerImagesAsync(target string) (result [][]byte, err error) 
 			v <- data
 		}(img, wg)
 	}
+
+	go func(channel chan []byte, result *[][]byte, wg *sync.WaitGroup) {
+		defer wg.Done()
+		for data := range channel {
+			*result = append(*result, data)
+		}
+	}(v, &result, wg2)
+
 	wg.Wait()
 	close(v)
-	for c := range v {
-		if c == nil {
-			continue
-		}
-		result = append(result, c)
-	}
+	wg2.Wait()
 
 	return result, nil
 }

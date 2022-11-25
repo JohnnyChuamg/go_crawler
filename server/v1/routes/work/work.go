@@ -78,13 +78,14 @@ func (c *Work) Print(ctx *gin.Context) {
 	var buffer bytes.Buffer
 	imgContentChannel := make(chan string, len(imgs))
 	var wg, wg2 sync.WaitGroup
-	wg.Add(len(imgs))
-	wg2.Add(1)
-
 	for _, img := range imgs {
+		if img == nil || len(img) <= 0 {
+			continue
+		}
+		wg.Add(1)
 		go getDataImageBase64Async(img, imgContentChannel, &wg)
 	}
-
+	wg2.Add(1)
 	//主序等channel close會卡死，因此另開一序作寫入buffer
 	go func(channel <-chan string, buffer *bytes.Buffer, wg *sync.WaitGroup) {
 		defer wg.Done()
